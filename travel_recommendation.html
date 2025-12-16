@@ -11,12 +11,16 @@
         <p><a href="contact.html">Contact us</a></p>
 
         
-        <form action="#" method="get">
-        <input type="text" name="search" placeholder="Search for recommendations">
-        <button type="submit">Search</button>
+        <form id="searchForm">
+            <input type="text" id="searchInput" name="search" placeholder="Search for recommendations">
+            <button type="submit">Search</button>
+            <button type="button" id="resetButton">Reset</button>
         </form>
-              
+        
+        <ul id="results"></ul>
+        
         <script src="travel_recommendation.js"></script>
+    
         </body>
 </html>
 
