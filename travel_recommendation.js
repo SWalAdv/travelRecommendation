@@ -1,61 +1,77 @@
-// Example recommendation list (you can replace this later with API results)
-const recommendations = [
-    "Visit Paris for great food and culture",
-    "Try yoga for relaxation",
-    "Read books about mindfulness",
-    "Explore web development tutorials",
-    "Travel to Iceland for nature lovers",
-    "Take a hip-hop dance class"
-];
+let items = [];
 
-// DOM elements
-const searchInput = document.getElementById("searchInput");
-const resultsDiv = document.getElementById("results");
+// Load JSON once
+async function loadData() {
+  if (items.length > 0) return;
+  const response = await fetch("travel_recommendation_api.json");
+  const data = await response.json();
 
-// Main search function (HTML calls this)
-function travelRecommendationSearch(query) {
-    const filtered = recommendations.filter(item =>
-        item.toLowerCase().includes(query.toLowerCase())
-    );
-    return filtered;
-}
-
-// Display results on the page
-function displayResults(results) {
-    resultsDiv.innerHTML = "";
-
-    if (!results || results.length === 0) {
-        resultsDiv.innerHTML = "<p>No results found.</p>";
-        return;
-    }
-
-    const list = document.createElement("ul");
-
-    results.forEach(item => {
-        const li = document.createElement("li");
-        li.textContent = item;
-        list.appendChild(li);
+  // Countries → Cities
+  data.countries.forEach(country => {
+    country.cities.forEach(city => {
+      items.push({
+        name: city.name,
+        description: city.description,
+        imageUrl: city.imageUrl
+      });
     });
+  });
 
-    resultsDiv.appendChild(list);
+  // Temples
+  data.temples.forEach(t => items.push(t));
+
+  // Beaches
+  data.beaches.forEach(b => items.push(b));
 }
 
-// Handle SEARCH button (form submit)
-document.getElementById("searchForm").addEventListener("submit", function(event) {
-    event.preventDefault();
+// Search function
+async function travelRecommendationSearch(query) {
+  await loadData();
+  query = query.toLowerCase();
 
-    const query = searchInput.value.trim();
-    if (query === "") {
-        resultsDiv.innerHTML = "<p>Please enter a keyword to search.</p>";
-        return;
+  return items.filter(item =>
+    item.name.toLowerCase().includes(query) ||
+    item.description.toLowerCase().includes(query)
+  );
+}
+
+// Display results
+function displayResults(results) {
+  const list = document.getElementById("results");
+  list.innerHTML = "";
+
+  if (results.length === 0) {
+    list.innerHTML = "<li>No results found.</li>";
+    return;
+  }
+
+  results.forEach(item => {
+    const li = document.createElement("li");
+
+    if (item.imageUrl) {
+      const img = document.createElement("img");
+      img.src = item.imageUrl;
+      img.width = 140;
+      li.appendChild(img);
     }
 
-    const results = travelRecommendationSearch(query);
-    displayResults(results);
+    li.appendChild(document.createTextNode(item.name));
+    list.appendChild(li);
+  });
+}
+
+// Form handling
+document.getElementById("searchForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const query = document.getElementById("searchInput").value.trim();
+  if (!query) return;
+
+  const results = await travelRecommendationSearch(query);
+  displayResults(results);
 });
 
-// Handle RESET button
-document.getElementById("resetButton").addEventListener("click", function() {
-    searchInput.value = "";
-    resultsDiv.innerHTML = "";
+// Reset button
+document.getElementById("resetButton").addEventListener("click", () => {
+  document.getElementById("searchInput").value = "";
+  document.getElementById("results").innerHTML = "";
 });
