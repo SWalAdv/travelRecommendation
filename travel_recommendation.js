@@ -1,77 +1,154 @@
+// travel_recommendation.js (minimal)
+
+// data store
 let items = [];
+let loaded = false;
 
-// Load JSON once
+// load JSON and flatten
 async function loadData() {
-  if (items.length > 0) return;
-  const response = await fetch("travel_recommendation_api.json");
-  const data = await response.json();
+  if (loaded) return;
+  const r = await fetch('travel_recommendation_api.json', { cache: 'no-store' });
+  const j = await r.json();
 
-  // Countries link to Cities
-  data.countries.forEach(country => {
-    country.cities.forEach(city => {
-      items.push({
-        name: city.name,
-        description: city.description,
-        imageUrl: city.imageUrl
-      });
+  if (Array.isArray(j.countries)) {
+    j.countries.forEach(c => {
+      const country = c.name || '';
+      if (Array.isArray(c.cities)) {
+        c.cities.forEach(city => items.push({
+          name: city.name || '',
+          description: city.description || '',
+          imageUrl: city.imageUrl || '',
+          category: 'city',
+          country
+        }));
+      }
     });
-  });
-
-  // Temples
-  data.temples.forEach(t => items.push(t));
-
-  // Beaches
-  data.beaches.forEach(b => items.push(b));
-}
-
-// Keywird searches with lowerCase conversion
-async function travelRecommendationSearch(query) {
-  await loadData();
-  query = query.toLowerCase();
-
-  return items.filter(item =>
-    item.name.toLowerCase().includes(query) ||
-    item.description.toLowerCase().includes(query)
-  );
-}
-
-// Display results
-function displayResults(results) {
-  const list = document.getElementById("results");
-  list.innerHTML = "";
-
-  if (results.length === 0) {
-    list.innerHTML = "<li>No results found.</li>";
-    return;
   }
 
-  results.forEach(item => {
-    const li = document.createElement("li");
+  if (Array.isArray(j.temples)) {
+    j.temples.forEach(t => items.push({
+      name: t.name || '',
+      description: t.description || '',
+      imageUrl: t.imageUrl || '',
+      category: 'temple'
+    }));
+  }
 
-    if (item.imageUrl) {
-      const img = document.createElement("img");
-      img.src = item.imageUrl;
+  if (Array.isArray(j.beaches)) {
+    j.beaches.forEach(b => items.push({
+      name: b.name || '',
+      description: b.description || '',
+      imageUrl: b.imageUrl || '',
+      category: 'beach'
+    }));
+  }
+
+  loaded = true;
+}
+
+// simple synonyms
+const SYN = {
+  beach: ['beach','beaches','coast','seaside','sand'],
+  temple: ['temple','temples','shrine']
+};
+
+// detect category keyword
+function detectCat(q) {
+  for (const k in SYN) if (SYN[k].some(s => q.includes(s))) return k;
+  return null;
+}
+
+// perform search, guarantee >=2 results
+async function search(q) {
+  await loadData();
+  q = (q || '').toLowerCase().trim();
+  if (!q) return [];
+
+  // 1) category keywords
+  const cat = detectCat(q);
+  let res = cat ? items.filter(it => it.category === cat) : [];
+
+  // 2) country match
+  if (res.length === 0) {
+    res = items.filter(it => it.country && it.country.toLowerCase().includes(q));
+  }
+
+  // 3) name/description match
+  if (res.length === 0) {
+    res = items.filter(it =>
+      (it.name && it.name.toLowerCase().includes(q)) ||
+      (it.description && it.description.toLowerCase().includes(q))
+    );
+  }
+
+  // 4) token fallback
+  if (res.length === 0 && q.includes(' ')) {
+    const t = q.split(/\s+/);
+    res = items.filter(it => t.some(tok =>
+      (it.name && it.name.toLowerCase().includes(tok)) ||
+      (it.description && it.description.toLowerCase().includes(tok))
+    ));
+  }
+
+  // ensure at least 2: supplement from same category then any
+  if (res.length < 2) {
+    const sameCat = (res[0] && res[0].category) || cat;
+    if (sameCat) {
+      items.forEach(it => { if (res.length < 2 && it.category === sameCat && !res.includes(it)) res.push(it); });
+    }
+    items.forEach(it => { if (res.length < 2 && !res.includes(it)) res.push(it); });
+  }
+
+  return res.slice(0, 10);
+}
+
+// render results to #results
+function render(results) {
+  const ul = document.getElementById('results');
+  if (!ul) return;
+  ul.innerHTML = '';
+  if (!results || results.length === 0) {
+    const li = document.createElement('li'); li.textContent = 'No results found.'; ul.appendChild(li); return;
+  }
+  results.forEach(r => {
+    const li = document.createElement('li');
+
+    if (r.imageUrl) {
+      const img = document.createElement('img');
+      img.src = r.imageUrl;
+      img.alt = r.name || '';
       img.width = 140;
+      img.height = 90;
+      img.style.display = 'block';
+      img.style.marginBottom = '6px';
       li.appendChild(img);
     }
 
-    li.appendChild(document.createTextNode(item.name));
-    list.appendChild(li);
+    const name = document.createElement('div'); name.textContent = r.name || ''; li.appendChild(name);
+    if (r.description) { const d = document.createElement('div'); d.textContent = r.description; li.appendChild(d); }
+
+    ul.appendChild(li);
   });
 }
 
-// Form handling
-document.getElementById("searchForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  const query = document.getElementById("searchInput").value.trim();
-  if (!query) return;
+// wire form submit and reset
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('searchForm');
+  const input = document.getElementById('searchInput');
+  const reset = document.getElementById('resetButton');
 
-  const results = await travelRecommendationSearch(query);
-  displayResults(results);
-});
+  if (form) form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const q = input ? input.value : '';
+    if (!q || !q.trim()) {
+      const ul = document.getElementById('results'); ul.innerHTML = ''; const li = document.createElement('li'); li.textContent = 'Please enter a keyword to search.'; ul.appendChild(li); return;
+    }
+    const res = await search(q);
+    render(res);
+  });
 
-// Reset button
-document.getElementById("resetButton").addEventListener("click", () => {
-  document.getElementById("searchInput").value = "";
-  document.getElementById("results").innerHTML = "";
+  if (reset) reset.addEventListener('click', () => {
+    if (input) input.value = '';
+    const ul = document.getElementById('results'); if (ul) ul.innerHTML = '';
+  });
 });
