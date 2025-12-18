@@ -6,7 +6,7 @@ async function loadData() {
   const response = await fetch("travel_recommendation_api.json");
   const data = await response.json();
 
-  // Countries → Cities
+  // Countries link to Cities
   data.countries.forEach(country => {
     country.cities.forEach(city => {
       items.push({
@@ -24,7 +24,7 @@ async function loadData() {
   data.beaches.forEach(b => items.push(b));
 }
 
-// Search function
+// Keywird searches with lowerCase conversion
 async function travelRecommendationSearch(query) {
   await loadData();
   query = query.toLowerCase();
