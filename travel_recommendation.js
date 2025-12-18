@@ -1,4 +1,4 @@
-// travel_recommendation.js (minimal)
+// travel_recommendation.js
 
 // data store
 let items = [];
