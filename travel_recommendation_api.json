@@ -6,12 +6,12 @@
         "cities": [
           {
             "name": "Sydney, Australia",
-            "imageUrl": "enter_your_image_for_sydney.jpg",
+            "imageUrl": "https://www.ysuites.co/wp-content/uploads/2025/10/getting-around-Sydney-public-transport.png",
             "description": "A vibrant city known for its iconic landmarks like the Sydney Opera House and Sydney Harbour Bridge."
           },
           {
             "name": "Melbourne, Australia",
-            "imageUrl": "enter_your_image_for_melbourne.jpg",
+            "imageUrl": "https://media.istockphoto.com/id/1162045962/fr/photo/melbourne-flinders-street-train-station-en-australie.jpg?s=1024x1024&w=is&k=20&c=PBuMNbrwTinxpjPgNAybtGRZ-7EGHeozp9PCZtES21E=",
             "description": "A cultural hub famous for its art, food, and diverse neighborhoods."
           }
         ]
